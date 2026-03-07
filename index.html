@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataCanvas AI - Interactivo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #12121a;
+            --bg-sidebar: #1a1a24;
+            --bg-panel: rgba(26, 26, 36, 0.85);
+            --accent-blue: #00e5ff;
+            --accent-red: #ff007f;
+            --text-main: #f0f0f5;
+            --text-muted: #8b8b99;
+            --border-color: #2a2a40;
+            --gradient-btn: linear-gradient(135deg, #00e5ff, #8a2be2);
+        }
+
+        /* Scrollbars customizados para tema oscuro */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-sidebar);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 360px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            position: relative;
+            z-index: 10;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .sidebar-header {
+            padding: 30px 30px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-header h2 {
+            margin: 5px 0 0;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .sidebar-content {
+            padding: 20px 25px 30px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            /* Dejar pasar clics */
+            z-index: 10;
+        }
+
+        /* Círculos de los puntos SVG */
+        .point {
+            transition: cx 0.3s ease-out, cy 0.3s ease-out, fill 0.3s, stroke 0.3s, r 0.2s;
+            stroke-width: 1.5px;
+        }
+
+        .point-error {
+            /* Falso Positivo o Falso Negativo */
+            stroke: #ffcc00 !important;
+            stroke-width: 3px !important;
+            animation: pulse-error 2s infinite;
+        }
+
+        @keyframes pulse-error {
+            0% {
+                filter: drop-shadow(0 0 2px #ffcc00);
+            }
+
+            50% {
+                filter: drop-shadow(0 0 10px #ffcc00);
+            }
+
+            100% {
+                filter: drop-shadow(0 0 2px #ffcc00);
+            }
+        }
+
+        /* Tooltip simple en CSS */
+        .tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 5px;
+            cursor: help;
+            position: relative;
+        }
+
+        .tooltip-icon:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 150%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #252b36;
+            color: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            font-weight: normal;
+            white-space: pre-wrap;
+            width: max-content;
+            max-width: 200px;
+            text-align: left;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+        }
+
+        select {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 10px 30px 10px 12px;
+            background: #1a1d24 url('data:image/svg+xml;utf8,<svg fill="%238b8b99" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 10px center;
+            background-size: 18px;
+            color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            outline: none;
+            font-size: 0.85rem;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .slider-row label {
+            margin: 0;
+            font-size: 0.7rem;
+            color: var(--text-main);
+        }
+
+        .slider-val {
+            font-size: 0.75rem;
+            color: var(--accent-blue);
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            margin-top: 8px;
+            margin-bottom: 5px;
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -5px;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+        }
+
+        .slider-red::-webkit-slider-thumb {
+            background: var(--accent-red) !important;
+            box-shadow: 0 0 8px rgba(244, 63, 94, 0.6) !important;
+        }
+
+        button.btn-primary {
+            background: var(--gradient-btn);
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        button.btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        button.btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        button.btn-secondary {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button.btn-secondary:hover {
+            background: var(--border-color);
+            color: #fff;
+        }
+
+        .hint {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: -5px;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        /* Main Canvas Area */
+        .main {
+            flex: 1;
+            position: relative;
+            background-color: var(--bg-main);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        /* Confusion Matrix Panel */
+        .metrics-panel {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            min-width: 250px;
+            cursor: grab;
+            transition: height 0.3s;
+            user-select: none;
+            z-index: 100;
+            pointer-events: auto;
+            /* IMPORTANTE para click y drag */
+        }
+
+        .metrics-panel:active {
+            cursor: grabbing;
+        }
+
+        .metrics-panel h3 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--accent-blue);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .collapse-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0 5px;
+            transition: color 0.2s;
+        }
+
+        .collapse-btn:hover {
+            color: #fff;
+        }
+
+        .metrics-content {
+            margin-top: 15px;
+            display: block;
+        }
+
+        .metrics-content.collapsed {
+            display: none;
+        }
+
+        .conf-matrix {
+            display: grid;
+            grid-template-columns: auto 1fr 1fr;
+            gap: 10px;
+            font-size: 0.8rem;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .conf-matrix .header {
+            font-weight: bold;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .conf-matrix .label-row {
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .conf-matrix .val {
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .label-0 {
+            color: var(--accent-red);
+        }
+
+        .label-1 {
+            color: var(--accent-blue);
+        }
+
+        .metrics-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .metrics-list .metric-val {
+            color: var(--accent-blue);
+            font-family: monospace;
+            font-size: 0.95rem;
+            float: right;
+        }
+
+        .metrics-list .tooltip-icon {
+            float: none;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        .overlay-loading {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #fff;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Drawer Informativo */
+        .info-drawer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(30, 30, 42, 0.85);
+            /* Un poco más oscuro que bg-panel para destacar */
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(calc(100% - 40px));
+            z-index: 150;
+            display: flex;
+            flex-direction: column;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+            max-width: 800px;
+            /* Limitar el ancho en pantallas gigantes */
+            margin: 0 auto;
+            /* Centrarlo */
+        }
+
+        .info-drawer.open {
+            transform: translateY(0);
+        }
+
+        .drawer-header {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--accent-blue);
+            gap: 10px;
+            user-select: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .info-drawer.open .drawer-header {
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .drawer-icon {
+            font-size: 1rem;
+            transition: transform 0.4s;
+        }
+
+        .info-drawer.open .drawer-icon {
+            transform: rotate(180deg);
+        }
+
+        .drawer-body {
+            padding: 20px 30px;
+            max-height: 35vh;
+            overflow-y: auto;
+            color: var(--text-color);
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+
+        .drawer-body h4 {
+            color: #fff;
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .drawer-body p {
+            margin-bottom: 12px;
+            color: #cbd5e1;
+        }
+
+        .drawer-body strong {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .drawer-body .tag {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            margin-right: 8px;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        /* --- Responsive Design --- */
+        .hamburger-btn {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+            background: rgba(30, 30, 42, 0.9);
+            color: #fff;
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            font-size: 0.9rem;
+        }
+
+        .hamburger-btn:hover {
+            background: var(--border-color);
+        }
+
+        /* Modal Ayuda */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            color: var(--text-main);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            color: var(--accent-blue);
+            font-size: 1.4rem;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: #fff;
+        }
+
+        .btn-help {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 30, 42, 0.9);
+            border: 1px solid var(--border-color);
+            color: var(--accent-blue);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 50;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            transition: all 0.2s;
+        }
+
+        .btn-help:hover {
+            background: var(--border-color);
+            transform: scale(1.1);
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 15;
+            backdrop-filter: blur(2px);
+        }
+
+        @media (max-width: 768px) {
+            .hamburger-btn {
+                display: block;
+                z-index: 250;
+            }
+
+            .sidebar-overlay {
+                z-index: 200;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                z-index: 210;
+                width: 280px;
+                height: 100vh;
+                box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
+            }
+
+            .sidebar-content {
+                padding-bottom: 90px;
+                /* Padding extra para asegurar visibilidad al scrollear al final */
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay.mobile-open {
+                display: block;
+            }
+
+            .metrics-panel {
+                bottom: auto;
+                top: 60px;
+                right: 10px;
+                left: auto;
+                min-width: 220px;
+                width: max-content;
+                max-width: 90%;
+                box-sizing: border-box;
+                padding: 12px;
+                transform: scale(0.85);
+                transform-origin: top right;
+            }
+
+            .info-drawer {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="hamburger-btn" id="hamburgerBtn">☰ Controles</button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <button class="btn-help" id="btnHelp" title="Instrucciones y Acerca de">?</button>
+
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal-content">
+            <button class="modal-close" id="btnCloseHelp">&times;</button>
+            <h2>Simulador Machine Learning</h2>
+            <p>Esta herramienta interactiva está diseñada para ayudarte a entender visualmente cómo funcionan los
+                modelos matemáticos predictivos y cómo perciben el "espacio" para clasificar datos.</p>
+
+            <h4 style="color: #fff; margin-bottom: 5px;">🕹️ Interactividad (Inyectar Datos)</h4>
+            <ul style="color: #cbd5e1; margin-top: 5px; font-size: 0.9rem;">
+                <li><strong>Clic Izquierdo</strong> en el lienzo: Añade un punto de <strong>Clase Roja (1)</strong>.
+                </li>
+                <li><strong>Clic Derecho</strong> en el lienzo: Añade un punto de <strong>Clase Azul (0)</strong>.</li>
+            </ul>
+            <p
+                style="font-size: 0.85rem; color: #a5b4fc; background: rgba(59, 130, 246, 0.1); padding: 8px; border-radius: 6px; border: 1px solid rgba(59,130,246,0.2);">
+                <em>¡Observa cómo la Inteligencia Artificial re-entrena instantáneamente reajustando su frontera para
+                    envolver tu nuevo punto!</em>
+            </p>
+
+            <h4 style="color: #fff; margin-bottom: 5px;">📖 Enciclopedia de Algoritmos</h4>
+            <p style="color: #cbd5e1; font-size: 0.9rem; margin-top: 5px;">Navega el menú de controles y despliega la
+                pestaña inferior <strong>"ℹ️ ¿Qué es esto y para qué sirve?"</strong> para acceder a una ficha
+                pedagógica detallada del algoritmo en uso.</p>
+        </div>
+    </div>
+
+    <div class="main-container">
+
+        <!-- Sidebar Controles -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>Simulador ML Didáctico</h1>
+            </div>
+
+            <div class="sidebar-content">
+                <div class="control-group">
+                    <label>Algoritmo</label>
+                    <select id="algoSelect" class="algo-selector">
+                        <option value="lr">Regresión Logística (Lineal)</option>
+                        <option value="knn">K-Nearest Neighbors</option>
+                        <option value="nb">Naive Bayes</option>
+                        <option value="dt">Árbol de Decisión</option>
+                        <option value="rf">Random Forest</option>
+                        <option value="gb">Gradient Boosting</option>
+                        <option value="svm">SVM (RBF Kernel)</option>
+                        <option value="nn">Red Neuronal (MLP)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Dataset Sintético</label>
+                    <select id="datasetSelect" class="algo-selector">
+                        <option value="blobs">Dos Grupos (Lineal)</option>
+                        <option value="circles">Círculos Concéntricos</option>
+                        <option value="moons">Lunas Entrelazadas</option>
+                        <option value="spirals">Espirales Complejas</option>
+                    </select>
+                    <div class="hint" id="datasetHint">✔ Patrones complejos (Redes Neuronales, XGBoost)</div>
+                </div>
+
+                <div style="height: 1px; background: var(--border-color); margin: 5px 0;"></div>
+
+                <!-- Opciones Dinamicas generadas por JS -->
+                <div id="hyperparams" class="hyperparams"></div>
+
+                <div style="margin-top:20px; text-align:center;">
+                    <!-- Botón removido (Entrenamiento reactivo) -->
+                    <!-- <button class="btn" id="btnTrain" style="width:100%;">Entrenar Modelo</button> -->
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#ef4444;"></div>Clase Roja (1)
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#3b82f6;"></div>Clase Azul (0)
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#ffcc00; border-radius:50%;"></div><span
+                            style="font-size:11px;">Mala Predicción (FP/FN)</span>
+                    </div>
+                </div>
+
+                <div style="height: 1px; background: var(--border-color); margin: 5px 0;"></div>
+
+                <!-- Parámetros de datos -->
+                <div class="control-group">
+                    <div class="slider-row">
+                        <label>Ruido en Datos</label>
+                        <span class="slider-val" id="valNoise" style="color: var(--accent-red);">0.15</span>
+                    </div>
+                    <input type="range" id="sliderNoise" class="slider-red" min="0" max="0.5" step="0.01" value="0.15">
+                </div>
+
+                <div class="control-group">
+                    <div class="slider-row">
+                        <label>Tamaño Muestra</label>
+                        <span class="slider-val" id="valSize">300</span>
+                    </div>
+                    <input type="range" id="sliderSize" min="100" max="1000" step="50" value="300">
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Área Principal -->
+        <div class="main">
+            <canvas id="canvas"></canvas>
+            <svg id="svgOverlay"></svg>
+
+            <div class="metrics-panel" id="metricsPanel">
+                <h3 id="panelHeader">Matriz de Confusión <button class="collapse-btn" id="btnCollapse">➖</button></h3>
+
+                <div id="metricsContent" class="metrics-content">
+                    <div class="conf-matrix">
+                        <div></div>
+                        <div class="header">Predicho 0</div>
+                        <div class="header">Predicho 1</div>
+
+                        <div class="label-row label-0">Real 0</div>
+                        <div class="val"><span id="m-tn">0</span><span class="tooltip-icon"
+                                data-tooltip="Verdaderos Negativos (TN): El modelo predijo correctamente la Clase Azul (0).">?</span>
+                        </div>
+                        <div class="val"><span id="m-fp">0</span><span class="tooltip-icon"
+                                data-tooltip="Falsos Positivos (FP): ERROR. El modelo predijo Rojo (1) pero originalmente era Azul (0).">?</span>
+                        </div>
+
+                        <div class="label-row label-1">Real 1</div>
+                        <div class="val"><span id="m-fn">0</span><span class="tooltip-icon"
+                                data-tooltip="Falsos Negativos (FN): ERROR. El modelo predijo Azul (0) pero originalmente era Rojo (1).">?</span>
+                        </div>
+                        <div class="val"><span id="m-tp">0</span><span class="tooltip-icon"
+                                data-tooltip="Verdaderos Positivos (TP): El modelo predijo correctamente la Clase Roja (1).">?</span>
+                        </div>
+                    </div>
+
+                    <div class="metrics-list">
+                        <div>Precisión: <span class="tooltip-icon"
+                                data-tooltip="Exactitud (Accuracy): Porcentaje total de aciertos sumando ambas clases.">?</span><span
+                                id="m-acc" class="metric-val">0.0%</span></div>
+                        <div>Recall: <span class="tooltip-icon"
+                                data-tooltip="Sensibilidad (Recall): De todos los puntos rojos que existen, ¿qué porcentaje logró encontrar el modelo?">?</span><span
+                                id="m-rec" class="metric-val">0.0%</span></div>
+                        <div>F1-Score: <span class="tooltip-icon"
+                                data-tooltip="F1-Score: Media armónica entre Precision y Recall. Útil para entender el equilibrio del modelo.">?</span><span
+                                id="m-f1" class="metric-val">0.0%</span></div>
+                        <div style="margin-top: 5px; color: #fff;">AUC ROC: <span class="tooltip-icon"
+                                data-tooltip="Área Bajo la Curva: Mide la capacidad general del modelo para distinguir fuertemente entre el Rojo y el Azul. 100% es perfecto.">?</span><span
+                                id="m-auc" class="metric-val" style="color:#a78bfa;">0.0%</span>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 0.75rem;">Iters: <span id="m-epoch" class="metric-val"
+                                style="color:var(--text-muted)">0</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overlay-loading" id="loadingDiv">
+                <div class="spinner"></div> Calculando...
+            </div>
+
+            <!-- Panel Informativo Didáctico -->
+            <div class="info-drawer" id="infoDrawer">
+                <div class="drawer-header" id="drawerHeader">
+                    <span>ℹ️ ¿Qué es esto y para qué sirve?</span>
+                    <span class="drawer-icon">▲</span>
+                </div>
+                <div class="drawer-body" id="drawerBody">
+                    <!-- Contenido dinámico rellenado por JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**********************************************************
+         * CONFIGURACIÓN GLOBAL
+         **********************************************************/
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        let width = canvas.width = canvas.parentElement.clientWidth;
+        let height = canvas.height = canvas.parentElement.clientHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = canvas.parentElement.clientWidth;
+            height = canvas.height = canvas.parentElement.clientHeight;
+            renderAll();
+        });
+
+        // Coordenadas matemáticas fijas
+        const mathMinX = -2.5, mathMaxX = 2.5;
+        const mathMinY = -3.0, mathMaxY = 3.0;
+
+        // Estado Global
+        let dataset = []; // {x: [x1, x2], y: label}
+        let currentModel = null;
+        let isAnimating = false;
+        let currentEpoch = 0;
+        let misclassifiedIndices = [];
+
+        let debounceTimer = null;
+        function debounceInitModel() {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                initModel();
+            }, 300); // 300ms delay para no saturar fastapi
+        }
+
+        // Colores base
+        const COLOR_0 = { r: 255, g: 0, b: 127 };  // Magenta
+        const COLOR_1 = { r: 0, g: 229, b: 255 }; // Cyan
+        const BG_COLOR = { r: 18, g: 18, b: 26 };  // Purpura ultra oscuro
+
+        /**********************************************************
+         * ENCICLOPEDIA DIDÁCTICA (ALGORITMOS)
+         **********************************************************/
+        const algoDescriptions = {
+            lr: `
+                <h4>Regresión Logística</h4>
+                <p>Es uno de los modelos matemáticos más simples. Intenta dibujar una <strong>línea recta única</strong> sin curvas (o hiperplano en 3D) a modo de cuchillo de carnicero para separar las dos clases de manera tajante.</p>
+                <p><strong>Ideal para:</strong> Problemas directos y sencillos donde las dos clases están agrupadas en dos lados bien opuestos del mapa (linealmente separables).</p>
+                <p><strong>Debilidad:</strong> Fracasa por completo en patrones complejos, concéntricos o cruzados (ej: las Espirales), ya que una línea recta nunca las atravesará bien.</p>
+                <div><span class="tag">Matemático (Lineal)</span><span class="tag">Probabilístico</span><span class="tag">Baja Complejidad</span></div>
+            `,
+            knn: `
+                <h4>K-Nearest Neighbors (K-Vecinos Más Cercanos)</h4>
+                <p>No aprende ninguna ecuación matemática de fondo. Literalmente memoriza todos los puntos. Al querer adivinar un lugar del mapa, mira a sus <strong>K vecinos (puntos) más cercanos</strong> en línea recta y hace que "voten" para decidir el color de ese lugar empujados por la mayoría absoluta.</p>
+                <p><strong>Ideal para:</strong> Trazar fronteras muy irregulares y caprichosas. Es fantástico cuando tienes "islas" de datos de un grupo sumergidos dentro del mar del otro grupo.</p>
+                <p><strong>Debilidad:</strong> Es horriblemente lento si le das Millones de registros de datos, y sufre una "Maldición de la Dimensionalidad" perdiendo su sentido del espacio al tener docenas de columnas de variables.</p>
+                <div><span class="tag">No Paramétrico</span><span class="tag">Distancias Euclidianas</span><span class="tag">Alta Varianza</span></div>
+            `,
+            nb: `
+                <h4>Naive Bayes Gaussiano</h4>
+                <p>Un modelo puramente estadístico hijo del "Teorema de Bayes". Calcula cuál es la probabilidad que un punto en las coordenadas X e Y pertenezca a la Clase Roja, versus a la Clase Azul, basándose en lo concentrados que estaban originalmente. Asume, ingenuamente ("Naive"), que el eje X no se relaciona inherentemente con el Eje Y para su existencia.</p>
+                <p><strong>Ideal para:</strong> Clasificación y lectura analítica de textos Naturales (Sistemas Anti-Spam), Diagnóstico de documentos o cuando tienes miles de campos independientes que juegan roles estadísticos.</p>
+                <p><strong>Debilidad:</strong> Como ignora las relaciones "causa-y-efecto" escondidas entre Ejes combinados, forma fronteras rígidas o bulbosas que ignoran sutilezas.</p>
+                <div><span class="tag">Probabilístico puro</span><span class="tag">Altamente Escalable</span></div>
+            `,
+            dt: `
+                <h4>Árbol de Decisión</h4>
+                <p>Toma la sabiduría haciendo repetidas e iterativas <strong>preguntas muy precisas de 'Sí o No'</strong>. <em>Ej: ¿El eje Y es mayor a 0? Sí. ¿El eje X es menor a 1? No. -> ¡Entonces es Azul!</em> Al mirar su frontera, notarás que todo está armado como una cuadrícula con trazos totalmente rectos paralelos a los Ejes.</p>
+                <p><strong>Ideal para:</strong> Ser Auditables. Sabes exactamente y sin duda TÉCNICAMENTE por qué la computadora decidió hacer una predicción inspeccionando el "dibujo" del árbol.</p>
+                <p><strong>Debilidad:</strong> Tiende irremediablemente al Overfitting: termina creando cajitas cerradas ínfimas (de un solo registro) memorizando excepciones minúsculas que debió haber descartado como "ruido".</p>
+                <div><span class="tag">Claro y Explicable</span><span class="tag">Partición Ortogonal</span></div>
+            `,
+            rf: `
+                <h4>Random Forest (Bosque Aleatorio)</h4>
+                <p>Crea muchísimos Árboles de Decisión (un bosque) mal entrenados a propósito (se les da de comer solo un pedacito o muestra diferente de los datos del mapa general). Al pedir una predicción, los miles de árboles dan su veredicto de qué color debería ser, ¡y la masa gana por votación democrática matemática!</p>
+                <p><strong>Ideal para:</strong> Es el <strong>caballito de batalla número 1 del Machine Learning Moderno (Tabular)</strong>. Rinde excepcionalmente en virtualmente todo escenario sin requerir horas de parametrización humana delicada.</p>
+                <p><strong>Debilidad:</strong> Perdiste totalmente la Explicabilidad y Claridad que tenía el árbol individual y se vuelve algo bastante hermético. Los modelos ocupan decenas de Megabytes de memoria.</p>
+                <div><span class="tag">Ensemble (Bagging)</span><span class="tag">Demócratico</span><span class="tag">Casi Infalible</span></div>
+            `,
+            gb: `
+                <h4>Gradient Boosting</h4>
+                <p>Arma árboles de decisión uno a la vez en cadena (secuenciales). Cada modelo nuevo sólo y exclusivamente intenta predecir e identificar a escondidas <strong>los puntos que su árbol antecesor erró flagrantemente con antelación</strong>, "reparándolo". Las famosas bestias XGBoost o LightGBM surgen de aquí.</p>
+                <p><strong>Ideal para:</strong> Aquellos que buscan ganar en Competiciones internacionales tipo Kaggle sacando hasta un decimal milimétrico de precisión suprema.</p>
+                <p><strong>Debilidad:</strong> Demasiado delicado. Al enfocarse tanto en los errores, si le das muchos árboles tenderá a aprenderse "los datos basura (Ruido)" en vez de "los conceptos visuales subyacentes".</p>
+                <div><span class="tag">Ensemble (Boosting Secuencial)</span><span class="tag">Potencia Absoluta</span></div>
+            `,
+            svm: `
+                <h4>Support Vector Machines (Kernel RBF)</h4>
+                <p>Extiende matemáticamente una llanura de 2 Dimensiones llevándola a una dimensión superior donde el humano no puede ver nada (Ej: La enrolla hacia arriba como en una montaña de 20 dimensiones), en el pico de esa montaña desliza una espada recta de Luz, ¡y luego deja los datos caer al papel 2D nuevo generando hermosos círculos envolventes!</p>
+                <p><strong>Ideal para:</strong> Casos como los "Círculos Concéntricos". Encuentra el canal/valle de máximo margen seguro entre 2 facciones fuertemente armadas y compactas creando colinas en torno a ellos.</p>
+                <p><strong>Debilidad:</strong> El hiperparámetro <strong>Gamma</strong> y <strong>C</strong> son brutales: poner un Gamma altísimo causará el mayor de los desastres memorísticos posibles con manchoncillos desconectados y sin relación en su frontera.</p>
+                <div><span class="tag">Truco Dimensional de Kernel</span><span class="tag">Márgenes de Soporte</span></div>
+            `,
+            nn: `
+                <h4>Red Neuronal Artificial (Perceptrón Multicapa)</h4>
+                <p>Trata de emular matemáticamente las conexiones neuronales del cerebro con un juego masivo de ponderaciones de álgebra matricial. "Capa 1": Ve trazos del plano, "Capa 2": Entiende cómo enredarlos. "Capa Salida": Toma su veredicto general iluminando su mapa analítico interior.</p>
+                <p><strong>Ideal para:</strong> Domina al mundo moderno. Rompe todo límite cuando se meten Visión Computacional (Cientos de miles de Pixeles unidos), Entendimiento Acústico o Texto Libre Complejo. Funciona perfecto en nuestras "Espirales" de alto conflicto.</p>
+                <p><strong>Debilidad:</strong> En problemas minúsculos de poquitos datos tabulares... te matarás meses paramétrizando Capas Ocultas o Learning Rates cuando Random Forest te lo hubiera solucionado en 0.5 segundos.</p>
+                <div><span class="tag">Deep Learning Moderno</span><span class="tag">Backpropagation Iterativo</span><span class="tag">Poder Computacional</span></div>
+            `
+        };
+
+        /**********************************************************
+         * DEFINICIÓN DE HIPERPARÁMETROS POR ALGORITMO
+         **********************************************************/
+        const algosConfig = {
+            lr: [],
+            knn: [
+                { id: 'knn_k', label: 'K Vecinos', type: 'range', min: 1, max: 20, step: 1, default: 5, tooltip: 'Cuántos vecinos cercanos miraremos para decidir. Si es muy bajo, se sobre-ajusta al ruido.\nSi es muy alto, ignora los detalles creando fronteras muy suaves.' }
+            ],
+            dt: [
+                { id: 'dt_depth', label: 'Profundidad Máx', type: 'range', min: 1, max: 15, step: 1, default: 5, tooltip: 'Cuántas preguntas consecutivas (splits) puede hacer el árbol.\nCon un valor de 1, es apenas una línea recta. Si es muy alto, se memoriza el Dataset (Overfitting).' }
+            ],
+            rf: [
+                { id: 'rf_trees', label: 'Nº Árboles', type: 'range', min: 10, max: 200, step: 10, default: 50, tooltip: 'Cantidad de árboles independientes que votarán el color final.\nMás árboles frenan el sobreajuste de un árbol solitario.' },
+                { id: 'rf_depth', label: 'Profundidad', type: 'range', min: 1, max: 15, step: 1, default: 5, tooltip: 'Profundidad máxima que tendrá permitida cada arbol individual del bosque.' }
+            ],
+            nb: [],
+            gb: [
+                { id: 'gb_trees', label: 'Estimadores', type: 'range', min: 10, max: 200, step: 10, default: 100, tooltip: 'Cantidad de árboles secuenciales.' },
+                { id: 'gb_lr', label: 'Learning Rate', type: 'range', min: 0.01, max: 0.5, step: 0.01, default: 0.1, tooltip: 'Impacto de cada árbol. Valores bajos requieren más estimadores.' },
+                { id: 'gb_depth', label: 'Profundidad', type: 'range', min: 1, max: 10, step: 1, default: 3, tooltip: 'Máxima profundidad.' }
+            ],
+            svm: [
+                { id: 'svm_gamma', label: 'Complejidad Curva (Gamma)', type: 'range', min: 0.1, max: 10, step: 0.1, default: 1, tooltip: 'Qué tan "estricta" es la isla alrededor de un punto.\nGamma mayor = curvas muy pequeñas encerrando cada punto (Overfitting).' }
+            ],
+            nn: [
+                { id: 'nn_layers', label: 'Capas Ocultas', type: 'range', min: 1, max: 5, step: 1, default: 2, tooltip: 'Cantidad de filtros matemáticos profundos.\nUn plano simple necesita 1 capa, espirales complejas y ajedrez requieren 3+.' },
+                { id: 'nn_neurons', label: 'Neuronas x Capa', type: 'range', min: 4, max: 64, step: 4, default: 16, tooltip: 'Ancho de la capa. Demasiadas neuronas en datos simples causan un sobreajuste inútil.' },
+                { id: 'nn_lr', label: 'Learning Rate', type: 'range', min: 0.001, max: 0.1, step: 0.001, default: 0.01, tooltip: 'El tamaño de los "pasos" que da al aprender. \nMuy grande: salta la respuesta ideal y nunca aprende.\nMuy chico: se demora una eternidad en acomodarse.' }
+            ]
+        };
+
+        /**********************************************************
+         * DATASETS Y MATEMÁTICAS
+         **********************************************************/
+        function randn() {
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random();
+            while (v === 0) v = Math.random();
+            return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
+
+        async function generateData(type, n, noisePerc) {
+            document.getElementById('loadingDiv').style.display = 'flex';
+            try {
+                const res = await fetch('/api/generate_data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dataset: type, n_samples: parseInt(n), noise: parseFloat(noisePerc) })
+                });
+                const data = await res.json();
+                dataset = data.dataset;
+
+                let hint = "✔ Formas sintéticas";
+                if (type === 'spirals') hint = "✔ Patrones complejos (RN, Random Forest)";
+                if (type === 'moons') hint = "✔ Separación no lineal curva";
+                if (type === 'circles') hint = "✔ Totalmente no lineal (SVM, RF ideal)";
+                if (type === 'blobs') hint = "✔ Linealmente separable (Regresión Logística)";
+                document.getElementById('datasetHint').innerText = hint;
+
+                initModel();
+            } catch (e) {
+                console.error(e);
+                document.getElementById('loadingDiv').style.display = 'none';
+            }
+        }
+
+        // --- Manejo del Drawer y Responsive Sidebar ---
+        const drawerHeader = document.getElementById('drawerHeader');
+        const infoDrawer = document.getElementById('infoDrawer');
+        const drawerBody = document.getElementById('drawerBody');
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        // --- Modal ---
+        const btnHelp = document.getElementById('btnHelp');
+        const helpModal = document.getElementById('helpModal');
+        const btnCloseHelp = document.getElementById('btnCloseHelp');
+
+        btnHelp.addEventListener('click', () => {
+            helpModal.classList.add('open');
+        });
+
+        btnCloseHelp.addEventListener('click', () => {
+            helpModal.classList.remove('open');
+        });
+
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                helpModal.classList.remove('open');
+            }
+        });
+
+        drawerHeader.addEventListener('click', () => {
+            infoDrawer.classList.toggle('open');
+        });
+
+        // Alternar visualización del Sidebar en Móviles
+        hamburgerBtn.addEventListener('click', () => {
+            sidebar.classList.add('mobile-open');
+            sidebarOverlay.classList.add('mobile-open');
+        });
+
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('mobile-open');
+            sidebarOverlay.classList.remove('mobile-open');
+        });
+
+        function updateDrawerInfo() {
+            const algo = document.getElementById('algoSelect').value;
+            drawerBody.innerHTML = algoDescriptions[algo] || '<p>Información no disponible.</p>';
+        }
+
+        /**********************************************************
+         * DATASETS Y FASTAPI
+         **********************************************************/
+        function getParamVal(id) {
+            let el = document.getElementById(id);
+            return el ? parseFloat(el.value) : null;
+        }
+
+        function createHyperparamsUI() {
+            const algo = document.getElementById('algoSelect').value;
+            const container = document.getElementById('hyperparams');
+            const cfg = algosConfig[algo];
+
+            let html = '';
+            cfg.forEach(p => {
+                html += `<div class="control-group">`;
+                html += `<label>${p.label} `;
+                if (p.tooltip) {
+                    html += `<span class="tooltip-icon" data-tooltip="${p.tooltip}">?</span>`;
+                }
+                html += `<span class="slider-val" id="val_${p.id}">${p.default}</span></label>`;
+                html += `<input type="range" id="${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.default}">`;
+                html += `</div>`;
+            });
+            container.innerHTML = html;
+
+            // Escuchar cambios
+            cfg.forEach(p => {
+                document.getElementById(p.id).addEventListener('input', (e) => {
+                    document.getElementById(`val_${p.id}`).innerText = e.target.value;
+                    debounceInitModel(); // Reactive Training
+                });
+            });
+        }
+
+        let currentGridProbs = [];
+        let backendMetrics = null;
+
+        async function initModel() {
+            if (!dataset || !dataset.length) return;
+            const algo = document.getElementById('algoSelect').value;
+            const params = {
+                nn_layers: getParamVal('nn_layers'), nn_neurons: getParamVal('nn_neurons'), nn_lr: getParamVal('nn_lr'),
+                rf_trees: getParamVal('rf_trees'), rf_depth: getParamVal('rf_depth'),
+                gb_trees: getParamVal('gb_trees'), gb_lr: getParamVal('gb_lr'), gb_depth: getParamVal('gb_depth'),
+                svm_gamma: getParamVal('svm_gamma'), dt_depth: getParamVal('dt_depth'), knn_k: getParamVal('knn_k')
+            };
+
+            const resX = 100, resY = 100;
+            document.getElementById('loadingDiv').style.display = 'flex';
+
+            try {
+                const req = await fetch('/api/train', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        X: dataset.map(d => d.x), y: dataset.map(d => d.y),
+                        algo: algo, params: params,
+                        grid: { x_min: mathMinX, x_max: mathMaxX, y_min: mathMinY, y_max: mathMaxY, res_x: resX, res_y: resY }
+                    })
+                });
+                const data = await req.json();
+                if (data.error) console.error(data.error);
+                else {
+                    currentGridProbs = data.grid_probs;
+                    backendMetrics = data.metrics;
+                    misclassifiedIndices = data.misclassified_indices || [];
+                    renderAll();
+                }
+            } catch (e) { console.error(e); }
+            document.getElementById('loadingDiv').style.display = 'none';
+        }
+
+        function toMath(sx, sy) {
+            return {
+                x: (sx / width) * (mathMaxX - mathMinX) + mathMinX,
+                y: ((height - sy) / height) * (mathMaxY - mathMinY) + mathMinY
+            };
+        }
+        function toScreen(mx, my) {
+            return {
+                x: ((mx - mathMinX) / (mathMaxX - mathMinX)) * width,
+                y: height - ((my - mathMinY) / (mathMaxY - mathMinY)) * height
+            };
+        }
+
+        function updateMetrics() {
+            if (!backendMetrics) return;
+            let m = backendMetrics;
+            document.getElementById('m-tp').innerText = m.tp;
+            document.getElementById('m-fp').innerText = m.fp;
+            document.getElementById('m-tn').innerText = m.tn;
+            document.getElementById('m-fn').innerText = m.fn;
+            document.getElementById('m-acc').innerText = (m.acc * 100).toFixed(1) + '%';
+            document.getElementById('m-rec').innerText = (m.rec * 100).toFixed(1) + '%';
+            document.getElementById('m-f1').innerText = (m.f1 * 100).toFixed(1) + '%';
+            document.getElementById('m-auc').innerText = (m.auc * 100).toFixed(1) + '%';
+            document.getElementById('m-epoch').innerText = "✓";
+        }
+
+        function renderAll() {
+            // Fondo / Frontera
+            const imgData = ctx.createImageData(width, height);
+            const data = imgData.data;
+            const res = 4; // Bajar resolución para performance si es muy grande
+
+            const resX = 100, resY = 100;
+            for (let sy = 0; sy < height; sy += res) {
+                for (let sx = 0; sx < width; sx += res) {
+                    let prob = 0.5;
+                    if (currentGridProbs && currentGridProbs.length > 0) {
+                        let gridY = Math.floor((sy / height) * resY);
+                        let gridX = Math.floor((sx / width) * resX);
+                        gridY = Math.min(resY - 1, Math.max(0, gridY));
+                        gridX = Math.min(resX - 1, Math.max(0, gridX));
+                        prob = currentGridProbs[gridY * resX + gridX];
+                    }
+
+                    // Mezclar colores (Red -> Blue) y oscurecer
+                    let r = COLOR_0.r * (1 - prob) + COLOR_1.r * prob;
+                    let g = COLOR_0.g * (1 - prob) + COLOR_1.g * prob;
+                    let b = COLOR_0.b * (1 - prob) + COLOR_1.b * prob;
+
+                    // Contrast enhancement
+                    let intensity = Math.abs(prob - 0.5) * 2; // 0 a 1
+                    let alpha = 0.8 + 0.2 * intensity;
+
+                    // Interpolacion con BG
+                    r = r * alpha + BG_COLOR.r * (1 - alpha);
+                    g = g * alpha + BG_COLOR.g * (1 - alpha);
+                    b = b * alpha + BG_COLOR.b * (1 - alpha);
+
+                    for (let dy = 0; dy < res && sy + dy < height; dy++) {
+                        for (let dx = 0; dx < res && sx + dx < width; dx++) {
+                            let idx = ((sy + dy) * width + (sx + dx)) * 4;
+                            data[idx] = r; data[idx + 1] = g; data[idx + 2] = b; data[idx + 3] = 255;
+                        }
+                    }
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            // Re-dibujado de puntos como elementos SVG Vectoriales
+            const svg = document.getElementById('svgOverlay');
+
+            // Reutilizar SVG nodes si es posible (rendimiento)
+            while (svg.childNodes.length > dataset.length) {
+                svg.removeChild(svg.lastChild);
+            }
+
+            for (let i = 0; i < dataset.length; i++) {
+                let p = dataset[i];
+                let coords = toScreen(p.x[0], p.x[1]);
+                let isError = misclassifiedIndices.includes(i);
+
+                let circle;
+                if (i < svg.childNodes.length) {
+                    circle = svg.childNodes[i];
+                } else {
+                    circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    circle.setAttribute("r", "5");
+                    svg.appendChild(circle);
+                }
+
+                circle.setAttribute("cx", coords.x);
+                circle.setAttribute("cy", coords.y);
+                circle.setAttribute("fill", p.y === 1 ? `rgba(${COLOR_1.r}, ${COLOR_1.g}, ${COLOR_1.b}, 0.9)` : `rgba(${COLOR_0.r}, ${COLOR_0.g}, ${COLOR_0.b}, 0.9)`);
+                circle.setAttribute("stroke", "white");
+                circle.setAttribute("stroke-width", "1");
+
+                if (isError) {
+                    circle.classList.add('point-error');
+                } else {
+                    circle.classList.remove('point-error');
+                }
+                circle.classList.add('point');
+            }
+
+            updateMetrics();
+        }
+
+        // --- Event Listeners Iniciales ---
+        document.getElementById('algoSelect').addEventListener('change', () => {
+            createHyperparamsUI();
+            updateDrawerInfo();
+            debounceInitModel();
+        });
+
+        document.getElementById('datasetSelect').addEventListener('change', () => {
+            // Limpiar metricas/red hasta que fastapi conteste
+            currentGridProbs = [];
+            backendMetrics = null;
+            misclassifiedIndices = [];
+            generateData(document.getElementById('datasetSelect').value, getParamVal('sliderSize'), getParamVal('sliderNoise'));
+        });
+
+        document.getElementById('sliderNoise').addEventListener('input', (e) => {
+            document.getElementById('valNoise').innerText = e.target.value;
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                generateData(document.getElementById('datasetSelect').value, getParamVal('sliderSize'), parseFloat(e.target.value));
+            }, 300);
+        });
+
+        document.getElementById('sliderSize').addEventListener('input', (e) => {
+            document.getElementById('valSize').innerText = e.target.value;
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                generateData(document.getElementById('datasetSelect').value, parseInt(e.target.value), getParamVal('sliderNoise'));
+            }, 300);
+        });
+
+        // let btnTrain = document.getElementById('btnTrain');
+        // if(btnTrain) btnTrain.addEventListener('click', () => { initModel(); });
+
+        // --- Interacción Manual en Canvas (Custom Data Points) ---
+        const mainArea = document.querySelector('.main');
+
+        mainArea.addEventListener('contextmenu', (e) => {
+            e.preventDefault(); // Evitar menú nativo en click derecho
+        });
+
+        mainArea.addEventListener('mousedown', (e) => {
+            // Ignorar clicks si ocurrieron sobre el panel flotante o loading
+            if (e.target.closest('.metrics-panel') || e.target.closest('.overlay-loading')) return;
+            // Solo procesar clic izquierdo (0) o derecho (2)
+            if (e.button !== 0 && e.button !== 2) return;
+
+            let rect = mainArea.getBoundingClientRect();
+            let clickX = e.clientX - rect.left;
+            let clickY = e.clientY - rect.top;
+
+            let mathCoords = toMath(clickX, clickY);
+
+            // Clic Izquierdo = Clase Roja (1), Clic Derecho = Clase Azul (0)
+            let label = (e.button === 0) ? 1 : 0;
+
+            // Añadir al dataset de forma transparente e invocar re-entrenamiento
+            dataset.push({ x: [mathCoords.x, mathCoords.y], y: label });
+
+            // Re-renderizamos los SVG al instante para dar feedback visual antes de que el backend responda
+            renderAll();
+            debounceInitModel();
+        });
+
+        let btnAnim = document.getElementById('btnAnimate');
+        if (btnAnim) btnAnim.style.display = 'none'; // Ya no animamos iteración a iteración con fastapi
+
+        // --- Logica Panel Draggable & Collapsible ---
+        const panel = document.getElementById('metricsPanel');
+        const btnCol = document.getElementById('btnCollapse');
+        const content = document.getElementById('metricsContent');
+        const panelHeader = document.getElementById('panelHeader');
+        let isDraggingPanel = false;
+        let pOffsetX, pOffsetY;
+
+        // Toggle Collapse
+        btnCol.addEventListener('click', (e) => {
+            content.classList.toggle('collapsed');
+            btnCol.innerText = content.classList.contains('collapsed') ? '➕' : '➖';
+            e.stopPropagation(); // Evita que se dispare el drag al hacer clic en el botón
+        });
+
+        // Iniciar Arrastre
+        panel.addEventListener('mousedown', (e) => {
+            if (e.target === btnCol) return; // Si es el boton, no iniciar drag
+            isDraggingPanel = true;
+            let rect = panel.getBoundingClientRect();
+            let mainRect = document.querySelector('.main').getBoundingClientRect();
+
+            // Calculamos desplazamiento del mouse relativo al borde superior izquierdo del panel
+            pOffsetX = e.clientX - rect.left;
+            pOffsetY = e.clientY - rect.top;
+
+            // Inicializamos top/left explícitamente y quitamos bottom/right para evitar saltos
+            panel.style.bottom = 'auto';
+            panel.style.right = 'auto';
+            panel.style.left = (rect.left - mainRect.left) + 'px';
+            panel.style.top = (rect.top - mainRect.top) + 'px';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDraggingPanel) return;
+            // Evitar que seleccione texto de la pagina por accidente
+            e.preventDefault();
+
+            let mainRect = document.querySelector('.main').getBoundingClientRect();
+
+            // Posición destino (en pantalla)
+            let targetXScreen = e.clientX - pOffsetX;
+            let targetYScreen = e.clientY - pOffsetY;
+
+            // Convertimos a coordenadas relativas al contenedor padre (.main)
+            let nx = targetXScreen - mainRect.left;
+            let ny = targetYScreen - mainRect.top;
+
+            // Restricción para no sacar de la ventana del simulador (.main)
+            const maxX = mainRect.width - panel.offsetWidth;
+            const maxY = mainRect.height - panel.offsetHeight;
+            nx = Math.max(0, Math.min(nx, maxX));
+            ny = Math.max(0, Math.min(ny, maxY));
+
+            panel.style.left = nx + 'px';
+            panel.style.top = ny + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDraggingPanel = false;
+        });
+
+        // Initialize application
+        createHyperparamsUI();
+        updateDrawerInfo();
+        generateData('spirals', 300, 0.15);
+        initModel();
+
+    </script>
+</body>
+
+</html>
