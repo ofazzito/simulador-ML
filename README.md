@@ -4,6 +4,8 @@ Una herramienta web interactiva para aprender, visualizar y experimentar con alg
 
 Este proyecto permite a los usuarios inyectar puntos de datos en tiempo real sobre un lienzo 2D y observar al instante cómo reacciona la frontera de decisión (Decision Boundary) de diferentes algoritmos de predicción, funcionando como una excelente herramienta pedagógica para entender el comportamiento espacial de la Inteligencia Artificial.
 
+🚀 **¡Pruébalo ahora en el Demo en Vivo!** [https://simuladorml.ofazzito.com.ar/](https://simuladorml.ofazzito.com.ar/)
+
 ![Simulador Preview](preview.png)
 
 ## Características
