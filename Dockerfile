@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Exponemos el puerto en el que correrá FastAPI (por defecto 8000)
-EXPOSE 8000
+EXPOSE 9000
 
 # Comando para ejecutar la aplicación con Uvicorn
 # Es CRUCIAL usar host "0.0.0.0" para que los port-forward de Docker y Coolify funcionen hacia el exterior.
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "9000"]
