@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Fondo redondeado -->
+  <rect x="5" y="5" width="90" height="90" rx="20" fill="#0a0a0a"/>
+  
+  <!-- Borde brillante -->
+  <rect x="5" y="5" width="90" height="90" rx="20" fill="none" stroke="#00d4ff" stroke-width="3"/>
+  
+  <!-- Serpiente estilizada -->
+  <g transform="translate(50, 50)">
+    <!-- Cuerpo de la serpiente en forma de S -->
+    <path d="M -20 -15 
+             Q -5 -25, 10 -15 
+             Q 25 -5, 15 10 
+             Q 5 25, -10 15 
+             Q -25 5, -15 -5" 
+          fill="none" 
+          stroke="#00d4ff" 
+          stroke-width="6" 
+          stroke-linecap="round"/>
+    
+    <!-- Cabeza de la serpiente -->
+    <ellipse cx="-18" cy="-18" rx="12" ry="10" fill="#00d4ff"/>
+    
+    <!-- Ojo de la serpiente -->
+    <circle cx="-22" cy="-20" r="3" fill="#0a0a0a"/>
+    
+    <!-- Lengua bífida -->
+    <path d="M -28 -22 L -32 -28 M -28 -22 L -24 -28" 
+          stroke="#ff6b6b" 
+          stroke-width="2" 
+          stroke-linecap="round"/>
+  </g>
+</svg>
