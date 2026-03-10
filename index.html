@@ -803,7 +803,7 @@
                         <option value="rf">Random Forest</option>
                         <option value="gb">Gradient Boosting</option>
                         <option value="svm">SVM (RBF Kernel)</option>
-                        <option value="nn">Red Neuronal (MLP)</option>
+                        <option value="nn" selected>Red Neuronal (MLP)</option>
                     </select>
                 </div>
 
@@ -813,7 +813,7 @@
                         <option value="blobs">Dos Grupos (Lineal)</option>
                         <option value="circles">Círculos Concéntricos</option>
                         <option value="moons">Lunas Entrelazadas</option>
-                        <option value="spirals">Espirales Complejas</option>
+                        <option value="spirals" selected>Espirales Complejas</option>
                     </select>
                     <div class="hint" id="datasetHint">✔ Patrones complejos (Redes Neuronales, XGBoost)</div>
                 </div>
@@ -1463,7 +1463,7 @@
         // Initialize application
         createHyperparamsUI();
         updateDrawerInfo();
-        generateData('spirals', 300, 0.15);
+        generateData(document.getElementById('datasetSelect').value, 300, 0.15);
         initModel();
 
     </script>
