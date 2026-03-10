@@ -19,6 +19,6 @@ COPY . .
 # Exponemos el puerto en el que correrá FastAPI (por defecto 8000)
 EXPOSE 9000
 
-# Comando para ejecutar la aplicación con Uvicorn
+# Comando para ejecutar la aplicación con Gunicorn (multi-worker)
 # Es CRUCIAL usar host "0.0.0.0" para que los port-forward de Docker y Coolify funcionen hacia el exterior.
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "9000"]
+CMD ["gunicorn", "main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:9000"]

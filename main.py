@@ -19,9 +19,17 @@ from sklearn.metrics import accuracy_score, recall_score, f1_score, roc_auc_scor
 import uvicorn
 import os
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi import Request
+
 warnings.filterwarnings('ignore')
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Servir el archivo index.html en la ruta raíz
 @app.get("/", response_class=HTMLResponse)
@@ -57,7 +65,8 @@ class DataReq(BaseModel):
     noise: float
 
 @app.post("/api/generate_data")
-def generate_data(req: DataReq):
+@limiter.limit("15/second")
+def generate_data(req: DataReq, request: Request):
     if req.dataset == 'circles':
         X, y = make_circles(n_samples=req.n_samples, noise=req.noise, factor=0.5)
     elif req.dataset == 'moons':
@@ -71,6 +80,8 @@ def generate_data(req: DataReq):
     # Scale coordinates to fit roughly in canvas [-2.5, 2.5]
     if len(X) > 0:
         X = (X - X.mean(axis=0)) / (X.std(axis=0) + 1e-8)
+        X = X.astype(np.float32) # Optimizacion de memoria
+        y = y.astype(np.int32)
         
     ds = [{"x": [float(X[i,0]), float(X[i,1])], "y": int(y[i])} for i in range(len(y))]
     return {"dataset": ds}
@@ -91,9 +102,11 @@ class TrainReq(BaseModel):
     grid: GridP
 
 @app.post("/api/train")
-def train_model(req: TrainReq):
-    X = np.array(req.X)
-    y = np.array(req.y)
+@limiter.limit("15/second")
+def train_model(req: TrainReq, request: Request):
+    # Optimizacion de memoria, float32 e int32 consumen la mitad vs float64(default numpy)
+    X = np.array(req.X, dtype=np.float32)
+    y = np.array(req.y, dtype=np.int32)
     
     if len(np.unique(y)) < 2:
         return {"error": "Dataset must have 2 classes"}
@@ -157,13 +170,22 @@ def train_model(req: TrainReq):
     
     # Calculate grid for background colors (decision boundary)
     g = req.grid
-    yy = np.linspace(g.y_max, g.y_min, g.res_y)
-    xx = np.linspace(g.x_min, g.x_max, g.res_x)
+    
+    # Prevenir que envien una resolucion destructiva que cuelgue el CPU (ej: res_x: 2000)
+    MAX_RES = 150
+    res_y = min(g.res_y, MAX_RES)
+    res_x = min(g.res_x, MAX_RES)
+
+    yy = np.linspace(g.y_max, g.y_min, res_y, dtype=np.float32)
+    xx = np.linspace(g.x_min, g.x_max, res_x, dtype=np.float32)
     XX, YY = np.meshgrid(xx, yy)
     
     grid_points = np.c_[XX.ravel(), YY.ravel()]
     grid_probs = model.predict_proba(grid_points)[:, 1] if hasattr(model, "predict_proba") else model.predict(grid_points)
     
+    # Cast_float32
+    grid_probs = grid_probs.astype(np.float32)
+
     return {
         "grid_probs": grid_probs.tolist(),
         "metrics": {
