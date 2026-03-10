@@ -10,7 +10,7 @@ Este proyecto permite a los usuarios inyectar puntos de datos en tiempo real sob
 
 ## Características
 
-- 🏗️ **Back-end en Python (FastAPI):** Entrenamiento de algoritmos pesados de Scikit-learn delegados al backend para mantener el rendimiento al máximo.
+- 🏗️ **Back-end en Python (FastAPI):** Entrenamiento rápido y optimizado para Multiprocesamiento delegando al backend para mantener el rendimiento al máximo.
 - 🎨 **Front-end Responsivo e Interactivo:** Una UI pulida apta tanto para navegadores de escritorio como dispositivos móviles.
 - 🖱️ **Inyección de Puntos Customizados:**
   - **Clic Izquierdo:** Añade un punto de Clase 1 (Rojo).
