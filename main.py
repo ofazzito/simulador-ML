@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any
@@ -41,6 +41,13 @@ async def read_index():
             return f.read()
     except FileNotFoundError:
         return "<h1>Error: index.html no encontrado en el servidor.</h1>"
+
+@app.get("/favicon.svg")
+async def read_favicon():
+    favicon_path = os.path.join(os.path.dirname(__file__), "favicon.svg")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    return HTMLResponse(content="Not Found", status_code=404)
 
 def make_spirals(n_samples, noise):
     n = n_samples // 2
@@ -194,11 +201,6 @@ def train_model(req: TrainReq, request: Request):
         },
         "misclassified_indices": misclassified
     }
-
-@app.get("/")
-def read_root():
-    with open("index.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=9000)
